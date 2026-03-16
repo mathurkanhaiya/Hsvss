@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "X Tweet Deleter"
+version = "1.0.0"
+id = "artifacts/tweet-deleter"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 23336
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/tweet-deleter run dev"
+
+[services.env]
+PORT = "23336"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/tweet-deleter", "run", "build"]
+publicDir = "artifacts/tweet-deleter/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"

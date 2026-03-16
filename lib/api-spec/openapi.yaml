@@ -1,15 +1,18 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: X Tweet Deleter API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: tweets
+    description: Tweet operations
 paths:
   /healthz:
     get:
@@ -24,6 +27,184 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    get:
+      operationId: authLogin
+      tags: [auth]
+      summary: Initiate OAuth login
+      description: Returns the X OAuth authorization URL
+      responses:
+        "200":
+          description: OAuth URL
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthLoginResponse"
+
+  /auth/callback:
+    get:
+      operationId: authCallback
+      tags: [auth]
+      summary: OAuth callback
+      description: Handles the OAuth callback from X
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Auth success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthCallbackResponse"
+        "400":
+          description: Auth error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: authLogout
+      tags: [auth]
+      summary: Logout
+      description: Clears the session
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: authMe
+      tags: [auth]
+      summary: Get current user
+      description: Returns the current authenticated user info
+      responses:
+        "200":
+          description: User info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserInfo"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tweets/list:
+    get:
+      operationId: tweetsList
+      tags: [tweets]
+      summary: List tweets
+      description: Fetch tweets for authenticated user
+      parameters:
+        - name: pagination_token
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Tweets list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TweetsListResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tweets/delete:
+    post:
+      operationId: tweetsDelete
+      tags: [tweets]
+      summary: Delete specific tweets
+      description: Delete an array of tweet IDs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteTweetsRequest"
+      responses:
+        "200":
+          description: Deletion result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteTweetsResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tweets/delete-all:
+    post:
+      operationId: tweetsDeleteAll
+      tags: [tweets]
+      summary: Delete all tweets
+      description: Delete all tweets with optional filters
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteAllTweetsRequest"
+      responses:
+        "200":
+          description: Deletion result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteTweetsResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /tweets/delete-likes:
+    post:
+      operationId: tweetsDeleteLikes
+      tags: [tweets]
+      summary: Delete all likes
+      description: Unlike all liked tweets
+      responses:
+        "200":
+          description: Deletion result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteTweetsResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +215,156 @@ components:
       required:
         - status
 
+    AuthLoginResponse:
+      type: object
+      properties:
+        url:
+          type: string
+        state:
+          type: string
+      required:
+        - url
+        - state
+
+    AuthCallbackResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        user:
+          $ref: "#/components/schemas/UserInfo"
+      required:
+        - success
+        - user
+
+    UserInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        username:
+          type: string
+        profile_image_url:
+          type: string
+        public_metrics:
+          $ref: "#/components/schemas/PublicMetrics"
+      required:
+        - id
+        - name
+        - username
+
+    PublicMetrics:
+      type: object
+      properties:
+        tweet_count:
+          type: integer
+        followers_count:
+          type: integer
+        following_count:
+          type: integer
+        like_count:
+          type: integer
+      required:
+        - tweet_count
+        - followers_count
+        - following_count
+
+    Tweet:
+      type: object
+      properties:
+        id:
+          type: string
+        text:
+          type: string
+        created_at:
+          type: string
+        public_metrics:
+          type: object
+          properties:
+            retweet_count:
+              type: integer
+            like_count:
+              type: integer
+            reply_count:
+              type: integer
+      required:
+        - id
+        - text
+        - created_at
+
+    TweetsListResponse:
+      type: object
+      properties:
+        tweets:
+          type: array
+          items:
+            $ref: "#/components/schemas/Tweet"
+        next_token:
+          type: string
+        total_fetched:
+          type: integer
+      required:
+        - tweets
+        - total_fetched
+
+    DeleteTweetsRequest:
+      type: object
+      properties:
+        tweet_ids:
+          type: array
+          items:
+            type: string
+      required:
+        - tweet_ids
+
+    DeleteAllTweetsRequest:
+      type: object
+      properties:
+        older_than_days:
+          type: integer
+        keywords:
+          type: array
+          items:
+            type: string
+        include_retweets:
+          type: boolean
+
+    DeleteTweetsResponse:
+      type: object
+      properties:
+        deleted:
+          type: integer
+        failed:
+          type: integer
+        total:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: string
+      required:
+        - deleted
+        - failed
+        - total
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+        - success
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error

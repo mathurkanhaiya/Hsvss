@@ -24,3 +24,8 @@ expertMode = true
 [postMerge]
 path = "scripts/post-merge.sh"
 timeoutMs = 20000
+
+[userenv]
+
+[userenv.shared]
+CALLBACK_URL = "https://ce95a9af-0a35-422e-932d-627a9f1004da-00-2wxcbw0lke5li.spock.replit.dev/api/auth/callback"
